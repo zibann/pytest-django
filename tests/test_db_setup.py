@@ -1,9 +1,8 @@
 import pytest
 
-from django.conf import settings
-
 from .conftest import create_test_module
-from .db_helpers import mark_exists, mark_database, drop_database, db_exists
+from .db_helpers import (mark_exists, mark_database, drop_database, db_exists,
+                         skip_if_sqlite)
 
 
 def test_db_reuse(django_testdir):
@@ -12,9 +11,7 @@ def test_db_reuse(django_testdir):
     to be available and the environment variables PG_HOST, PG_DB, PG_USER to
     be defined.
     """
-
-    if settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
-        pytest.skip('Do not test db reuse since database does not support it')
+    skip_if_sqlite()
 
     create_test_module(django_testdir, '''
 import pytest
@@ -60,43 +57,31 @@ def test_db_can_be_accessed():
     assert not mark_exists()
 
 
-# def test_conftest_connection_caching(django_testdir, monkeypatch):
-#     """
-#     Make sure django.db.connections is properly cleared before a @django_db
-#     test, when a connection to the actual database has been constructed.
+def test_xdist_db_setup(django_testdir):
+    skip_if_sqlite()
 
-#     """
-#     tpkg_path = setup_test_environ(django_testdir, monkeypatch, '''
-# import pytest
+    drop_database('gw0')
+    drop_database('gw1')
 
-# from django.test import TestCase
-# from django.conf import settings
+    create_test_module(django_testdir, '''
+import pytest
 
-# from app.models import Item
+from .app.models import Item
 
-# def test_a():
-#     # assert settings.DATABASES['default']['NAME'] == 'test_pytest_django_db_testasdf'
-#     Item.objects.count()
+@pytest.mark.django_db
+def test_xdist_db_name(settings):
+    # Make sure that the database name looks correct
+    db_name = settings.DATABASES['default']['NAME']
+    assert db_name.endswith('_gw0')
 
-# @pytest.mark.django_db
-# def test_b():
-#     assert settings.DATABASES['default']['NAME'] == 'test_pytest_django_db_test'
-#     Item.objects.count()
+    # Make sure that it is actually possible to query the database
+    assert Item.objects.count() == 0
 
-# ''')
+''')
 
-#     tpkg_path.join('conftest.py').write('''
-# # from app.models import Item
-# # Item.objects.count()
-# # from django.db import models
-# from django.db import connection
-# cursor = connection.cursor()
-# cursor.execute('SELECT 1')
+    result = django_testdir.runpytest('-vv', '-n1', '-s')
+    result.stdout.fnmatch_lines([
+        "*PASSED*test_xdist_db_name*",
+    ])
 
-
-# ''')
-    # result = django_testdir.runpytest('-v')
-    # result.stdout.fnmatch_lines([
-    #     "*test_b PASSED*",
-    #     "*test_a PASSED*",
-    # ])
+    assert db_exists('gw0')
