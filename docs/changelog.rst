@@ -1,5 +1,23 @@
 Changelog
 =========
+2.5.0 (in development)
+----------------------
+* Python 2.5 compatibility dropped. py.test 2.5 dropped support for Python 2.5,
+  therefore it will be hard to properly support in pytest-django. The same
+  strategy as for pytest itself is used: No code will be changed to prevent
+  Python 2.5 from working, but it will not be actively tested.
+
+2.4.0
+-----
+* Support for py.test 2.4 pytest_load_initial_conftests. This makes it possible
+  to import Django models in project conftest.py files, since pytest-django
+  will be initialized before the conftest.py is loaded.
+
+2.3.1
+-----
+* Support for Django 1.5 custom user models, thanks to Leonardo Santagada.
+
+
 2.3.0
 -----
 

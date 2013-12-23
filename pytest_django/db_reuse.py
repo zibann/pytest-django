@@ -8,7 +8,8 @@ import types
 
 
 def can_support_db_reuse(connection):
-    """Return whether it makes any sense to use REUSE_DB with the backend of a connection."""
+    """Return whether it makes any sense to use REUSE_DB with the backend of a
+    connection."""
     # This is a SQLite in-memory DB. Those are created implicitly when
     # you try to connect to them, so our test below doesn't work.
     return connection.creation._get_test_db_name() != ':memory:'

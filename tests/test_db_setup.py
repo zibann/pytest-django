@@ -1,8 +1,14 @@
 import pytest
 
+<<<<<<< HEAD
 from .conftest import create_test_module
 from .db_helpers import (mark_exists, mark_database, drop_database, db_exists,
                          skip_if_sqlite)
+=======
+from django.conf import settings
+
+from .db_helpers import mark_exists, mark_database, drop_database, db_exists
+>>>>>>> master
 
 
 def test_db_reuse(django_testdir):
@@ -13,7 +19,7 @@ def test_db_reuse(django_testdir):
     """
     skip_if_sqlite()
 
-    create_test_module(django_testdir, '''
+    django_testdir.create_test_module('''
 import pytest
 
 from .app.models import Item

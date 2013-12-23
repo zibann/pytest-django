@@ -10,3 +10,7 @@ _build
 /.coverage.*
 /.coverage
 /htmlcov/
+/bin/
+/include/
+/lib/
+.cache

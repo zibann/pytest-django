@@ -74,7 +74,9 @@ def test_ds_non_existent(testdir, monkeypatch):
     monkeypatch.setenv('DJANGO_SETTINGS_MODULE', 'DOES_NOT_EXIST')
     testdir.makepyfile('def test_ds(): pass')
     result = testdir.runpytest()
-    result.stderr.fnmatch_lines(['''*Could not import settings 'DOES_NOT_EXIST' (Is it on sys.path?):*'''])
+    result.stderr.fnmatch_lines(
+        ["*Could not import settings 'DOES_NOT_EXIST' (Is it on sys.path?*):*"])
+
 
 def test_django_settings_configure(testdir, monkeypatch):
     """
@@ -131,7 +133,8 @@ def test_django_settings_configure(testdir, monkeypatch):
     ])
 
 
-def test_settings_in_hook(testdir):
+def test_settings_in_hook(testdir, monkeypatch):
+    monkeypatch.delenv('DJANGO_SETTINGS_MODULE')
     testdir.makeconftest("""
         from django.conf import settings
 
