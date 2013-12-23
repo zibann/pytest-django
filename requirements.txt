@@ -1,5 +1,4 @@
 -e .
 django
 django-configurations
-pytest-cache
 pytest-xdist
