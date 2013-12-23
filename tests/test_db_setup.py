@@ -1,14 +1,4 @@
-import pytest
-
-<<<<<<< HEAD
-from .conftest import create_test_module
-from .db_helpers import (mark_exists, mark_database, drop_database, db_exists,
-                         skip_if_sqlite)
-=======
-from django.conf import settings
-
-from .db_helpers import mark_exists, mark_database, drop_database, db_exists
->>>>>>> master
+from .db_helpers import mark_exists, mark_database, drop_database, db_exists, skip_if_sqlite
 
 
 def test_db_reuse(django_testdir):
@@ -63,31 +53,49 @@ def test_db_can_be_accessed():
     assert not mark_exists()
 
 
-def test_xdist_db_setup(django_testdir):
+def test_xdist_with_reuse(django_testdir):
     skip_if_sqlite()
 
     drop_database('gw0')
     drop_database('gw1')
 
-    create_test_module(django_testdir, '''
+    django_testdir.create_test_module('''
 import pytest
 
 from .app.models import Item
 
-@pytest.mark.django_db
-def test_xdist_db_name(settings):
+def _check(settings):
     # Make sure that the database name looks correct
     db_name = settings.DATABASES['default']['NAME']
-    assert db_name.endswith('_gw0')
+    assert db_name.endswith('_gw0') or db_name.endswith('_gw1')
 
-    # Make sure that it is actually possible to query the database
     assert Item.objects.count() == 0
+    Item.objects.create(name='foo')
+    assert Item.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_a(settings):
+    _check(settings)
+
+
+@pytest.mark.django_db
+def test_b(settings):
+    _check(settings)
 
 ''')
 
-    result = django_testdir.runpytest('-vv', '-n1', '-s')
-    result.stdout.fnmatch_lines([
-        "*PASSED*test_xdist_db_name*",
-    ])
+    result = django_testdir.runpytest('-vv', '-n2', '-s', '--reuse-db')
+    result.stdout.fnmatch_lines(['*PASSED*test_a*'])
+    result.stdout.fnmatch_lines(['*PASSED*test_b*'])
 
     assert db_exists('gw0')
+    assert db_exists('gw1')
+
+    result = django_testdir.runpytest('-vv', '-n2', '-s', '--reuse-db')
+    result.stdout.fnmatch_lines(['*PASSED*test_a*'])
+    result.stdout.fnmatch_lines(['*PASSED*test_b*'])
+
+    result = django_testdir.runpytest('-vv', '-n2', '-s', '--reuse-db', '--create-db')
+    result.stdout.fnmatch_lines(['*PASSED*test_a*'])
+    result.stdout.fnmatch_lines(['*PASSED*test_b*'])

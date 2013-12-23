@@ -7,17 +7,17 @@ import sys
 import types
 
 
-def can_support_db_reuse(connection):
+def is_in_memory_db(connection):
     """Return whether it makes any sense to use REUSE_DB with the backend of a
     connection."""
     # This is a SQLite in-memory DB. Those are created implicitly when
     # you try to connect to them, so our test below doesn't work.
-    return connection.creation._get_test_db_name() != ':memory:'
+    return connection.settings_dict['NAME'] == ':memory:'
 
 
 def test_database_exists_from_previous_run(connection):
     # Check for sqlite memory databases
-    if not can_support_db_reuse(connection):
+    if is_in_memory_db(connection):
         return False
 
     # Try to open a cursor to the test database
@@ -50,26 +50,27 @@ def _monkeypatch(obj, method_name, new_method):
 def monkey_patch_creation_for_db_suffix(suffix=None):
     from django.db import connections
 
-    def _get_test_db_name(self):
-        """
-        Internal implementation - returns the name of the test DB that will be
-        created. Only useful when called from create_test_db() and
-        _create_test_db() and when no external munging is done with the 'NAME'
-        or 'TEST_NAME' settings.
-        """
-        print 'the patched method got called, suffix=%s' % suffix
-        assert 0
-        if self.connection.settings_dict['TEST_NAME']:
-            original = self.connection.settings_dict['TEST_NAME']
-        original = 'test_' + self.connection.settings_dict['NAME']
+    if suffix is not None:
+        def _get_test_db_name(self):
+            """
+            Internal implementation - returns the name of the test DB that will be
+            created. Only useful when called from create_test_db() and
+            _create_test_db() and when no external munging is done with the 'NAME'
+            or 'TEST_NAME' settings.
+            """
 
-        if suffix:
-            return '%s_%s' % (original, suffix)
+            if self.connection.settings_dict['TEST_NAME']:
+                original = self.connection.settings_dict['TEST_NAME']
+            original = 'test_' + self.connection.settings_dict['NAME']
 
-        return original
+            if suffix:
+                return '%s_%s' % (original, suffix)
 
-    for connection in connections.all():
-        _monkeypatch(connection.creation, '_get_test_db_name', _get_test_db_name)
+            return original
+
+        for connection in connections.all():
+
+            _monkeypatch(connection.creation, '_get_test_db_name', _get_test_db_name)
 
 
 def create_test_db_with_reuse(self, verbosity=1, autoclobber=False):

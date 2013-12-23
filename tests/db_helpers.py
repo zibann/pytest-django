@@ -82,8 +82,6 @@ def drop_database(name=TEST_DB_NAME, suffix=None):
 
 
 def db_exists(db_suffix=None):
-    import pytest
-    pytest.set_trace()
     name = TEST_DB_NAME
 
     if db_suffix:
