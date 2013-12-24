@@ -7,8 +7,9 @@ import os
 import pytest
 
 from . import live_server_helper
-from .db_reuse import (monkey_patch_creation_for_db_reuse,
-                       monkey_patch_creation_for_db_suffix)
+from .db_reuse import monkey_patch_creation_for_db_reuse
+from .db_name_suffix import monkey_patch_creation_for_db_suffix
+
 from .django_compat import is_django_unittest
 from .lazy_django import skip_if_no_django
 
@@ -29,11 +30,8 @@ def _django_db_setup(request, _django_runner, _django_cursor_wrapper):
 
     # xdist
     if hasattr(request.config, 'slaveinput'):
-        db_suffix = request.config.slaveinput['slaveid']
-    else:
-        db_suffix = None
+        monkey_patch_creation_for_db_suffix(request.config.slaveinput['slaveid'])
 
-    monkey_patch_creation_for_db_suffix(db_suffix)
 
     # Disable south's syncdb command
     commands = management.get_commands()

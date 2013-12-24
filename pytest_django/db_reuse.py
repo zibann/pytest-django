@@ -3,9 +3,7 @@
 The code in this module is heavily inspired by django-nose:
 https://github.com/jbalogh/django-nose/
 """
-import sys
-import types
-
+from .utils import monkeypatch_method
 
 def is_in_memory_db(connection):
     """Return whether it makes any sense to use REUSE_DB with the backend of a
@@ -33,44 +31,6 @@ def test_database_exists_from_previous_run(connection):
         connection.close()
         connection.settings_dict['NAME'] = orig_db_name
 
-
-
-
-def _monkeypatch(obj, method_name, new_method):
-    assert hasattr(obj, method_name)
-
-    if sys.version_info < (3, 0):
-        wrapped_method = types.MethodType(new_method, obj, obj.__class__)
-    else:
-        wrapped_method = types.MethodType(new_method, obj)
-
-    setattr(obj, method_name, wrapped_method)
-
-
-def monkey_patch_creation_for_db_suffix(suffix=None):
-    from django.db import connections
-
-    if suffix is not None:
-        def _get_test_db_name(self):
-            """
-            Internal implementation - returns the name of the test DB that will be
-            created. Only useful when called from create_test_db() and
-            _create_test_db() and when no external munging is done with the 'NAME'
-            or 'TEST_NAME' settings.
-            """
-
-            if self.connection.settings_dict['TEST_NAME']:
-                original = self.connection.settings_dict['TEST_NAME']
-            original = 'test_' + self.connection.settings_dict['NAME']
-
-            if suffix:
-                return '%s_%s' % (original, suffix)
-
-            return original
-
-        for connection in connections.all():
-
-            _monkeypatch(connection.creation, '_get_test_db_name', _get_test_db_name)
 
 
 def create_test_db_with_reuse(self, verbosity=1, autoclobber=False):
@@ -102,4 +62,4 @@ def monkey_patch_creation_for_db_reuse():
 
     for connection in connections.all():
         if test_database_exists_from_previous_run(connection):
-            _monkeypatch(connection.creation, 'create_test_db', create_test_db_with_reuse)
+            monkeypatch_method(connection.creation, 'create_test_db', create_test_db_with_reuse)
