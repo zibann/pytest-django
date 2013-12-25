@@ -109,26 +109,18 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True, scope='session')
-def _django_runner(request):
-    """Create the django runner, internal to pytest-django
-
-    This does important things like setting up the local memory email
-    backend etc.
-
-    XXX It is a little dodgy that this is an autouse fixture.  Perhaps
-        an email fixture should be requested in order to be able to
-        use the Django email machinery just like you need to request a
-        db fixture for access to the Django database, etc.  But
-        without duplicating a lot more of Django's test support code
-        we need to follow this model.
+def _django_test_environment(request):
+    """
+    Sets up the Django test environment, by calling Django's setup_test_environment
     """
     if django_settings_is_configured():
-        from django.test.simple import DjangoTestSuiteRunner
+        from django.test.utils import setup_test_environment, teardown_test_environment
+        from django.conf import settings
 
-        runner = DjangoTestSuiteRunner(interactive=False)
-        runner.setup_test_environment()
-        request.addfinalizer(runner.teardown_test_environment)
-        return runner
+        setup_test_environment()
+        settings.DEBUG = False
+
+        request.addfinalizer(teardown_test_environment)
 
 
 @pytest.fixture(autouse=True, scope='session')
@@ -145,6 +137,7 @@ def _django_cursor_wrapper(request):
 
         manager = CursorManager(django.db.backends.util)
         manager.disable()
+        request.addfinalizer(manager.enable)
     else:
         manager = CursorManager()
     return manager
@@ -170,7 +163,7 @@ def _django_db_marker(request):
 def _django_setup_unittest(request, _django_cursor_wrapper):
     """Setup a django unittest, internal to pytest-django"""
     if django_settings_is_configured() and is_django_unittest(request.node):
-        request.getfuncargvalue('_django_runner')
+        request.getfuncargvalue('_django_test_environment')
         request.getfuncargvalue('_django_db_setup')
         _django_cursor_wrapper.enable()
         request.addfinalizer(_django_cursor_wrapper.disable)
