@@ -5,6 +5,6 @@ try:
 except ImportError:
     from django.test.simple import DjangoTestSuiteRunner
 
-    _runner = DjangoTestSuiteRunner()
+    _runner = DjangoTestSuiteRunner(interactive=False)
     setup_databases = _runner.setup_databases
     teardown_databases = _runner.teardown_databases
