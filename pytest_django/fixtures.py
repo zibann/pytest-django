@@ -7,13 +7,13 @@ import os
 import pytest
 
 from . import live_server_helper
-from .db_reuse import monkey_patch_creation_for_db_reuse
+from .db_reuse import DjangoTestDatabaseReuse
 from .db_name_suffix import monkey_patch_creation_for_db_suffix
 
 from .django_compat import is_django_unittest
 from .lazy_django import skip_if_no_django
 
-__all__ = ['_django_db_setup', 'db', 'transactional_db',
+__all__ = ['django_db_setup', 'django_db', 'django_db_transactional',
            'client', 'admin_client', 'rf', 'settings', 'live_server',
            '_live_server_helper']
 
@@ -22,16 +22,36 @@ __all__ = ['_django_db_setup', 'db', 'transactional_db',
 
 
 @pytest.fixture(scope='session')
-def _django_db_setup(request, _django_test_environment, _django_cursor_wrapper):
-    """Session-wide database setup, internal to pytest-django"""
-    skip_if_no_django()
+def django_test_db_config(request, django_test_environment):
+    """Make sure the databases are configured to point to test mirrors"""
 
-    from django.core import management
-    from .compat import setup_databases, teardown_databases
+    skip_if_no_django()
 
     # xdist
     if hasattr(request.config, 'slaveinput'):
         monkey_patch_creation_for_db_suffix(request.config.slaveinput['slaveid'])
+
+
+@pytest.fixture(scope='session')
+def django_db_reuse(request, django_cursor_wrapper):
+    """An instance of DjangoTestDatabaseReuse"""
+    db_reuse = DjangoTestDatabaseReuse(request.config)
+
+    return db_reuse
+
+
+@pytest.fixture(scope='session')
+def django_db_setup(request,
+                    django_test_db_config,
+                    django_test_environment,
+                    django_cursor_wrapper,
+                    django_db_reuse):
+    """Session-wide database setup, internal to pytest-django"""
+    skip_if_no_django()
+
+    from django.core import management
+
+    from .compat import setup_databases, teardown_databases
 
 
     # Disable south's syncdb command
@@ -39,21 +59,14 @@ def _django_db_setup(request, _django_test_environment, _django_cursor_wrapper):
     if commands['syncdb'] == 'south':
         management._commands['syncdb'] = 'django.core'
 
-    reuse_db = request.config.getvalue('reuse_db')
-    create_db = request.config.getvalue('create_db')
+    django_db_reuse.monkeypatch_django_creation()
 
-    with _django_cursor_wrapper:
-        # Monkey patch Django's setup code to support database re-use
-        if reuse_db:
-            if not create_db:
-                monkey_patch_creation_for_db_reuse()
-
-        # Create the database
+    with django_cursor_wrapper:
         db_cfg = setup_databases()
 
-    if not reuse_db:
+    if django_db_reuse.should_drop_database():
         def fin():
-            with _django_cursor_wrapper:
+            with django_cursor_wrapper:
                 teardown_databases(db_cfg)
 
         request.addfinalizer(fin)
@@ -63,7 +76,7 @@ def _django_db_setup(request, _django_test_environment, _django_cursor_wrapper):
 
 
 @pytest.fixture(scope='function')
-def db(request, _django_db_setup, _django_cursor_wrapper):
+def django_db(request, django_db_setup, django_cursor_wrapper):
     """Require a django test database
 
     This database will be setup with the default fixtures and will
@@ -82,15 +95,15 @@ def db(request, _django_db_setup, _django_cursor_wrapper):
 
         from django.test import TestCase
 
-        _django_cursor_wrapper.enable()
+        django_cursor_wrapper.enable()
         case = TestCase(methodName='__init__')
         case._pre_setup()
         request.addfinalizer(case._post_teardown)
-        request.addfinalizer(_django_cursor_wrapper.disable)
+        request.addfinalizer(django_cursor_wrapper.disable)
 
 
 @pytest.fixture(scope='function')
-def transactional_db(request, _django_db_setup, _django_cursor_wrapper):
+def django_db_transactional(request, django_db_setup, django_cursor_wrapper):
     """Require a django test database with transaction support
 
     This will re-initialise the django database for each test and is
@@ -102,7 +115,7 @@ def transactional_db(request, _django_db_setup, _django_cursor_wrapper):
     requested.
     """
     if not is_django_unittest(request.node):
-        _django_cursor_wrapper.enable()
+        django_cursor_wrapper.enable()
 
         def flushdb():
             """Flush the database and close database connections"""
@@ -112,12 +125,11 @@ def transactional_db(request, _django_db_setup, _django_cursor_wrapper):
             from django.core.management import call_command
 
             for db in connections:
-                call_command('flush', verbosity=0,
-                             interactive=False, database=db)
+                call_command('flush', verbosity=0, interactive=False, database=db)
             for conn in connections.all():
                 conn.close()
 
-        request.addfinalizer(_django_cursor_wrapper.disable)
+        request.addfinalizer(django_cursor_wrapper.disable)
         request.addfinalizer(flushdb)
 
 
@@ -132,27 +144,31 @@ def client():
 
 
 @pytest.fixture()
-def admin_client(db):
-    """A Django test client logged in as an admin user"""
-    try:
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-    except ImportError:
-        from django.contrib.auth.models import User
-    from django.test.client import Client
+def admin_client(request, django_cursor_wrapper):
+    request.getfuncargvalue('django_db_setup')
 
-    try:
-        User.objects.get(username='admin')
-    except User.DoesNotExist:
-        user = User.objects.create_user('admin', 'admin@example.com',
-                                        'password')
-        user.is_staff = True
-        user.is_superuser = True
-        user.save()
+    with django_cursor_wrapper:
+        """A Django test client logged in as an admin user"""
 
-    client = Client()
-    client.login(username='admin', password='password')
-    return client
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+        except ImportError:
+            from django.contrib.auth.models import User
+        from django.test.client import Client
+
+        try:
+            User.objects.get(username='admin')
+        except User.DoesNotExist:
+            user = User.objects.create_user('admin', 'admin@example.com',
+                                            'password')
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+
+        client = Client()
+        client.login(username='admin', password='password')
+        return client
 
 
 @pytest.fixture()
@@ -234,4 +250,4 @@ def _live_server_helper(request):
     function-scoped.
     """
     if 'live_server' in request.funcargnames:
-        request.getfuncargvalue('transactional_db')
+        request.getfuncargvalue('django_db_transactional')

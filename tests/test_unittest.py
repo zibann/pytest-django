@@ -99,7 +99,7 @@ class TestFoo(TestCase):
 
 
 class TestCaseWithDbFixture(TestCase):
-    pytestmark = pytest.mark.usefixtures('db')
+    pytestmark = pytest.mark.usefixtures('django_db')
 
     def test_simple(self):
         # We only want to check setup/teardown does not conflict
@@ -107,7 +107,7 @@ class TestCaseWithDbFixture(TestCase):
 
 
 class TestCaseWithTrDbFixture(TestCase):
-    pytestmark = pytest.mark.usefixtures('transactional_db')
+    pytestmark = pytest.mark.usefixtures('django_db_transactional')
 
     def test_simple(self):
         # We only want to check setup/teardown does not conflict

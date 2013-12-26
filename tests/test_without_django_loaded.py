@@ -36,10 +36,10 @@ def test_database(testdir):
         def test_mark_trans():
             assert 0
 
-        def test_db(db):
+        def test_db(django_db):
             assert 0
 
-        def test_transactional_db(transactional_db):
+        def test_transactional_db(django_db_transactional):
             assert 0
     """)
     r = testdir.runpytest()

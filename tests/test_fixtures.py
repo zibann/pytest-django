@@ -24,13 +24,7 @@ def test_client(client):
 
 
 @pytest.mark.django_db
-def test_admin_client(admin_client):
-    assert isinstance(admin_client, Client)
-    resp = admin_client.get('/admin-required/')
-    assert force_text(resp.content) == 'You are an admin'
-
-
-def test_admin_client_no_db_marker(admin_client):
+def test_admin_client(admin_client, django_cursor_wrapper):
     assert isinstance(admin_client, Client)
     resp = admin_client.get('/admin-required/')
     assert force_text(resp.content) == 'You are an admin'
@@ -96,12 +90,12 @@ class TestLiveServer:
         response_data = urlopen(live_server + '/item_count/').read()
         assert force_text(response_data) == 'Item count: 1'
 
-    def test_fixture_db(self, db, live_server):
+    def test_fixture_db(self, django_db, live_server):
         Item.objects.create(name='foo')
         response_data = urlopen(live_server + '/item_count/').read()
         assert force_text(response_data) == 'Item count: 1'
 
-    def test_fixture_transactional_db(self, transactional_db, live_server):
+    def test_fixture_django_db_transactional(self, django_db_transactional, live_server):
         Item.objects.create(name='foo')
         response_data = urlopen(live_server + '/item_count/').read()
         assert force_text(response_data) == 'Item count: 1'
@@ -120,7 +114,7 @@ class TestLiveServer:
         pass
 
     @pytest.fixture
-    def item_db(self, db):
+    def item_db(self, django_db):
         return Item.objects.create(name='foo')
 
     def test_item_db(self, item_db, live_server):
@@ -128,9 +122,9 @@ class TestLiveServer:
         assert force_text(response_data) == 'Item count: 1'
 
     @pytest.fixture
-    def item_transactional_db(self, transactional_db):
+    def item_django_db_transactional(self, django_db_transactional):
         return Item.objects.create(name='foo')
 
-    def test_item_transactional_db(self, item_transactional_db, live_server):
+    def test_item_transactional_db(self, item_django_db_transactional, live_server):
         response_data = urlopen(live_server + '/item_count/').read()
         assert force_text(response_data) == 'Item count: 1'

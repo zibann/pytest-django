@@ -48,12 +48,9 @@ def test_noaccess_fixture(noaccess):
 class TestDatabaseFixtures:
     """Tests for the db and transactional_db fixtures"""
 
-    @pytest.fixture(params=['db', 'transactional_db'])
+    @pytest.fixture(params=['django_db', 'django_db_transactional'])
     def both_dbs(self, request):
-        if request.param == 'transactional_db':
-            return request.getfuncargvalue('transactional_db')
-        elif request.param == 'db':
-            return request.getfuncargvalue('db')
+        return request.getfuncargvalue(request.param)
 
     def test_access(self, both_dbs):
         Item.objects.create(name='spam')
@@ -62,10 +59,10 @@ class TestDatabaseFixtures:
         # Relies on the order: test_access created an object
         assert Item.objects.count() == 0
 
-    def test_transactions_disabled(self, db):
+    def test_transactions_disabled(self, django_db):
         assert noop_transactions()
 
-    def test_transactions_enabled(self, transactional_db):
+    def test_transactions_enabled(self, django_db_transactional):
         assert not noop_transactions()
 
     @pytest.fixture

@@ -10,15 +10,16 @@ import sys
 import pytest
 
 from .django_compat import is_django_unittest
-from .fixtures import (_django_db_setup, db, transactional_db, client,
+from .fixtures import (django_db_setup, django_db, django_db_transactional,
+                       django_test_db_config, django_db_reuse, client,
                        admin_client, rf, settings, live_server,
                        _live_server_helper)
 
 from .lazy_django import skip_if_no_django, django_settings_is_configured
 
 
-(_django_db_setup, db, transactional_db, client, admin_client, rf,
- settings, live_server, _live_server_helper)
+(django_db_setup, django_db, django_db_transactional, django_test_db_config, django_db_reuse,
+ client, admin_client, rf, settings, live_server, _live_server_helper)
 
 
 SETTINGS_MODULE_ENV = 'DJANGO_SETTINGS_MODULE'
@@ -109,7 +110,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True, scope='session')
-def _django_test_environment(request):
+def django_test_environment(request):
     """
     Sets up the Django test environment, by calling Django's setup_test_environment
     """
@@ -124,7 +125,7 @@ def _django_test_environment(request):
 
 
 @pytest.fixture(autouse=True, scope='session')
-def _django_cursor_wrapper(request):
+def django_cursor_wrapper(request):
     """The django cursor wrapper, internal to pytest-django
 
     This will globally disable all database access. The object
@@ -150,23 +151,24 @@ def _django_db_marker(request):
     This will dynamically request the ``db`` or ``transactional_db``
     fixtures as required by the django_db marker.
     """
-    marker = request.keywords.get('django_db', None)
+    marker = request.node.get_marker('django_db')
+
     if marker:
         validate_django_db(marker)
         if marker.transaction:
-            request.getfuncargvalue('transactional_db')
+            request.getfuncargvalue('django_db_transactional')
         else:
-            request.getfuncargvalue('db')
+            request.getfuncargvalue('django_db')
 
 
 @pytest.fixture(autouse=True)
-def _django_setup_unittest(request, _django_cursor_wrapper):
+def _django_setup_unittest(request, django_cursor_wrapper):
     """Setup a django unittest, internal to pytest-django"""
     if django_settings_is_configured() and is_django_unittest(request.node):
-        request.getfuncargvalue('_django_test_environment')
-        request.getfuncargvalue('_django_db_setup')
-        _django_cursor_wrapper.enable()
-        request.addfinalizer(_django_cursor_wrapper.disable)
+        request.getfuncargvalue('django_test_environment')
+        request.getfuncargvalue('django_db_setup')
+        django_cursor_wrapper.enable()
+        request.addfinalizer(django_cursor_wrapper.disable)
 
 
 @pytest.fixture(autouse=True, scope='function')
@@ -180,7 +182,7 @@ def _django_clear_outbox(request):
 @pytest.fixture(autouse=True, scope='function')
 def _django_set_urlconf(request):
     """Apply the @pytest.mark.urls marker, internal to pytest-django"""
-    marker = request.keywords.get('urls', None)
+    marker = request.node.get_marker('urls')
     if marker:
         skip_if_no_django()
         import django.conf
@@ -203,13 +205,15 @@ def _django_set_urlconf(request):
 class CursorManager(object):
     """Manager for django.db.backends.util.CursorWrapper
 
-    This is the object returned by _django_cursor_wrapper.
+    This is the object returned by django_cursor_wrapper.
 
     If created with None as django.db.backends.util the object is a
     no-op.
     """
 
     def __init__(self, dbutil=None):
+        self.stack = []
+
         self._dbutil = dbutil
         if dbutil:
             self._orig_wrapper = dbutil.CursorWrapper
@@ -220,20 +224,27 @@ class CursorManager(object):
         pytest.fail('Database access not allowed, '
                     'use the "django_db" mark to enable')
 
+
     def enable(self):
         """Enable access to the django database"""
         if self._dbutil:
+            self.stack.append(self._dbutil.CursorWrapper)
             self._dbutil.CursorWrapper = self._orig_wrapper
 
     def disable(self):
         if self._dbutil:
+            self.stack.append(self._dbutil.CursorWrapper)
             self._dbutil.CursorWrapper = self._blocking_wrapper
+
+    def restore(self):
+        assert self.stack, 'no state to pop!'
+        self._dbutil.CursorWrapper = self.stack.pop()
 
     def __enter__(self):
         self.enable()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.disable()
+        self.restore()
 
 
 def validate_django_db(marker):
