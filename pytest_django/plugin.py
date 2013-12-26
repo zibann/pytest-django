@@ -138,7 +138,7 @@ def django_cursor_wrapper(request):
 
         manager = CursorManager(django.db.backends.util)
         manager.disable()
-        request.addfinalizer(manager.enable)
+        request.addfinalizer(manager.restore)
     else:
         manager = CursorManager()
     return manager
@@ -168,7 +168,7 @@ def _django_setup_unittest(request, django_cursor_wrapper):
         request.getfuncargvalue('django_test_environment')
         request.getfuncargvalue('django_db_setup')
         django_cursor_wrapper.enable()
-        request.addfinalizer(django_cursor_wrapper.disable)
+        request.addfinalizer(django_cursor_wrapper.restore)
 
 
 @pytest.fixture(autouse=True, scope='function')

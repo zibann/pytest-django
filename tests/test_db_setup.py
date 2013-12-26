@@ -29,16 +29,16 @@ def test_db_can_be_accessed():
     result_first = django_testdir.runpytest('-v', '--reuse-db')
 
     result_first.stdout.fnmatch_lines([
-        "*test_db_can_be_accessed PASSED*",
+        "*1 passed*",
     ])
 
     assert not mark_exists()
     mark_database()
     assert mark_exists()
 
-    result_second = django_testdir.runpytest('-v', '--reuse-db')
+    result_second = django_testdir.runpytest('-v', '--reuse-db', '-s')
     result_second.stdout.fnmatch_lines([
-        "*test_db_can_be_accessed PASSED*",
+        "*1 passed*",
     ])
 
     # Make sure the database has not been re-created
@@ -46,7 +46,7 @@ def test_db_can_be_accessed():
 
     result_third = django_testdir.runpytest('-v', '--reuse-db', '--create-db')
     result_third.stdout.fnmatch_lines([
-        "*test_db_can_be_accessed PASSED*",
+        "*1 passed*",
     ])
 
     # Make sure the database has been re-created and the mark is gone

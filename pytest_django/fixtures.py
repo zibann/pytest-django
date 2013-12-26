@@ -53,13 +53,13 @@ def django_db_setup(request,
 
     from .compat import setup_databases, teardown_databases
 
-
     # Disable south's syncdb command
     commands = management.get_commands()
     if commands['syncdb'] == 'south':
         management._commands['syncdb'] = 'django.core'
 
-    django_db_reuse.monkeypatch_django_creation()
+    if django_db_reuse.can_reuse_database():
+        django_db_reuse.monkeypatch_django_creation(django_cursor_wrapper)
 
     with django_cursor_wrapper:
         db_cfg = setup_databases()
@@ -99,7 +99,7 @@ def django_db(request, django_db_setup, django_cursor_wrapper):
         case = TestCase(methodName='__init__')
         case._pre_setup()
         request.addfinalizer(case._post_teardown)
-        request.addfinalizer(django_cursor_wrapper.disable)
+        request.addfinalizer(django_cursor_wrapper.restore)
 
 
 @pytest.fixture(scope='function')
@@ -129,7 +129,7 @@ def django_db_transactional(request, django_db_setup, django_cursor_wrapper):
             for conn in connections.all():
                 conn.close()
 
-        request.addfinalizer(django_cursor_wrapper.disable)
+        request.addfinalizer(django_cursor_wrapper.restore)
         request.addfinalizer(flushdb)
 
 

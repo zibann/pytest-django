@@ -10,4 +10,3 @@ def monkeypatch_method(obj, method_name, new_method):
         wrapped_method = types.MethodType(new_method, obj)
 
     setattr(obj, method_name, wrapped_method)
-

@@ -16,7 +16,7 @@ class DjangoTestDatabaseReuse(object):
     def should_drop_database(self):
         return not self.config.getvalue('reuse_db')
 
-    def monkeypatch_django_creation(self):
+    def monkeypatch_django_creation(self, django_cursor_wrapper):
         from django.db import connections
 
         def create_test_db_with_reuse(self, verbosity=1, autoclobber=False):
@@ -42,9 +42,10 @@ class DjangoTestDatabaseReuse(object):
 
             return test_database_name
 
-        for connection in connections.all():
-            if _test_database_exists_from_previous_run(connection):
-                monkeypatch_method(connection.creation, 'create_test_db', create_test_db_with_reuse)
+        with django_cursor_wrapper:
+            for connection in connections.all():
+                if _test_database_exists_from_previous_run(connection):
+                    monkeypatch_method(connection.creation, 'create_test_db', create_test_db_with_reuse)
 
 
 def _is_in_memory_db(connection):
@@ -56,9 +57,13 @@ def _is_in_memory_db(connection):
 
 
 def _test_database_exists_from_previous_run(connection):
+    from django.db.utils import OperationalError
+
     # Check for sqlite memory databases
     if _is_in_memory_db(connection):
         return False
+
+    connection.close()
 
     # Try to open a cursor to the test database
     orig_db_name = connection.settings_dict['NAME']
@@ -67,7 +72,7 @@ def _test_database_exists_from_previous_run(connection):
     try:
         connection.cursor()
         return True
-    except Exception:  # TODO: Be more discerning but still DB agnostic.
+    except OperationalError:
         return False
     finally:
         connection.close()
