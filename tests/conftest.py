@@ -25,6 +25,7 @@ def django_testdir(testdir, monkeypatch):
 
     db_settings = copy.deepcopy(settings.DATABASES)
     db_settings['default']['NAME'] = DB_NAME
+    del db_settings['default']['TEST_NAME']
 
     test_settings = '''
 # Pypy compatibility

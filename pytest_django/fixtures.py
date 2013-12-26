@@ -8,7 +8,7 @@ import pytest
 
 from . import live_server_helper
 from .db_reuse import DjangoTestDatabaseReuse
-from .db_name_suffix import monkey_patch_creation_for_db_suffix
+from .test_db_config import TestDBConfig
 
 from .django_compat import is_django_unittest
 from .lazy_django import skip_if_no_django
@@ -27,17 +27,22 @@ def django_test_db_config(request, django_test_environment):
 
     skip_if_no_django()
 
-    # xdist
+    # Add xdist "gw0", "gw1", ... suffixes to the test database name
     if hasattr(request.config, 'slaveinput'):
-        monkey_patch_creation_for_db_suffix(request.config.slaveinput['slaveid'])
+        suffix = request.config.slaveinput['slaveid']
+    else:
+        suffix = None
+
+    test_db_config = TestDBConfig(suffix)
+    test_db_config.set_test_names()
+
+    return test_db_config
 
 
 @pytest.fixture(scope='session')
 def django_db_reuse(request, django_cursor_wrapper):
     """An instance of DjangoTestDatabaseReuse"""
-    db_reuse = DjangoTestDatabaseReuse(request.config)
-
-    return db_reuse
+    return DjangoTestDatabaseReuse(request.config, django_cursor_wrapper)
 
 
 @pytest.fixture(scope='session')
@@ -58,8 +63,9 @@ def django_db_setup(request,
     if commands['syncdb'] == 'south':
         management._commands['syncdb'] = 'django.core'
 
+    # Replace Django's database test creation creation code to support database reuse
     if django_db_reuse.can_reuse_database():
-        django_db_reuse.monkeypatch_django_creation(django_cursor_wrapper)
+        django_db_reuse.monkeypatch_django_creation()
 
     with django_cursor_wrapper:
         db_cfg = setup_databases()

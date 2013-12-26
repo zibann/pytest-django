@@ -7,16 +7,17 @@ from .utils import monkeypatch_method
 
 
 class DjangoTestDatabaseReuse(object):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, config, django_cursor_wrapper):
+        self._config = config
+        self._django_cursor_wrapper = django_cursor_wrapper
 
     def can_reuse_database(self):
-        return self.config.getvalue('reuse_db') and not self.config.getvalue('create_db')
+        return self._config.getvalue('reuse_db') and not self._config.getvalue('create_db')
 
     def should_drop_database(self):
-        return not self.config.getvalue('reuse_db')
+        return not self._config.getvalue('reuse_db')
 
-    def monkeypatch_django_creation(self, django_cursor_wrapper):
+    def monkeypatch_django_creation(self):
         from django.db import connections
 
         def create_test_db_with_reuse(self, verbosity=1, autoclobber=False):
@@ -42,7 +43,7 @@ class DjangoTestDatabaseReuse(object):
 
             return test_database_name
 
-        with django_cursor_wrapper:
+        with self._django_cursor_wrapper:
             for connection in connections.all():
                 if _test_database_exists_from_previous_run(connection):
                     monkeypatch_method(connection.creation, 'create_test_db', create_test_db_with_reuse)
