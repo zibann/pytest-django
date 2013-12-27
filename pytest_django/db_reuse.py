@@ -58,7 +58,7 @@ def _is_in_memory_db(connection):
 
 
 def _test_database_exists_from_previous_run(connection):
-    from django.db.utils import OperationalError
+    from .compat import OperationalError
 
     # Check for sqlite memory databases
     if _is_in_memory_db(connection):

@@ -8,3 +8,12 @@ except ImportError:
     _runner = DjangoTestSuiteRunner(interactive=False)
     setup_databases = _runner.setup_databases
     teardown_databases = _runner.teardown_databases
+
+
+# OperationalError was introduced in Django 1.6
+# Use the less generic DatabaseError for older Django versions
+try:
+    from django.db.utils import OperationalError
+except ImportError:
+    from django.db.utils import DatabaseError as OperationalError
+    OperationalError  # silence pyflakes
