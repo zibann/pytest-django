@@ -3,7 +3,8 @@
 The code in this module is heavily inspired by django-nose:
 https://github.com/jbalogh/django-nose/
 """
-from .utils import monkeypatch_method
+
+from .utils import monkeypatch_method, is_in_memory_db
 
 
 class DjangoTestDatabaseReuse(object):
@@ -48,20 +49,11 @@ class DjangoTestDatabaseReuse(object):
                 if _test_database_exists_from_previous_run(connection):
                     monkeypatch_method(connection.creation, 'create_test_db', create_test_db_with_reuse)
 
-
-def _is_in_memory_db(connection):
-    """Return whether it makes any sense to use REUSE_DB with the backend of a
-    connection."""
-    # This is a SQLite in-memory DB. Those are created implicitly when
-    # you try to connect to them, so our test below doesn't work.
-    return connection.settings_dict['NAME'] == ':memory:'
-
-
 def _test_database_exists_from_previous_run(connection):
     from .compat import OperationalError
 
     # Check for sqlite memory databases
-    if _is_in_memory_db(connection):
+    if is_in_memory_db(connection):
         return False
 
     connection.close()

@@ -1,3 +1,6 @@
+from .utils import is_in_memory_db
+
+
 class TestDBConfig(object):
     """
     Helper class to modify TEST_NAME and NAME to point to test databases.
@@ -20,6 +23,10 @@ class TestDBConfig(object):
         from django.db import connections
 
         for connection in connections.all():
+            # Do not bother setting TEST_NAME for in memory databases
+            if is_in_memory_db(connection):
+                continue
+
             test_name = connection.settings_dict.get('TEST_NAME')
 
             if test_name is None:
