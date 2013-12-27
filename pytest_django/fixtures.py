@@ -55,6 +55,13 @@ def django_db_setup(request,
     skip_if_no_django()
 
     from .compat import setup_databases, teardown_databases
+    from django.conf import settings
+
+    # Run souths syncdb command if south is installed. Teh call to
+    # patch_for_test_db_setup ensures that migrations are run
+    if 'south' in settings.INSTALLED_APPS:
+        from south.management.commands import patch_for_test_db_setup
+        patch_for_test_db_setup()
 
     # Replace Django's database test creation creation code to support database reuse
     if django_db_reuse.can_reuse_database():
