@@ -1,7 +1,7 @@
 """Test for user-visible fixtures
 
-Not quite all fixtures are tested here, the db and transactional_db
-fixtures are tested in test_database.
+Not quite all fixtures are tested here, the django_db and
+django_db_transactional fixtures are tested in test_database.
 """
 
 from __future__ import with_statement
@@ -125,6 +125,6 @@ class TestLiveServer:
     def item_django_db_transactional(self, django_db_transactional):
         return Item.objects.create(name='foo')
 
-    def test_item_transactional_db(self, item_django_db_transactional, live_server):
+    def test_item_django_db_transactional(self, item_django_db_transactional, live_server):
         response_data = urlopen(live_server + '/item_count/').read()
         assert force_text(response_data) == 'Item count: 1'

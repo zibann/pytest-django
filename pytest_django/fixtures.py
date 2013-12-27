@@ -95,9 +95,9 @@ def django_db(request, django_db_setup, django_cursor_wrapper):
     database setup will behave as only ``transaction_db`` was
     requested.
     """
-    if ('transactional_db' not in request.funcargnames and
-            'live_server' not in request.funcargnames and
-            not is_django_unittest(request.node)):
+    if ('django_db_transactional' not in request.funcargnames and
+        'live_server' not in request.funcargnames and
+        not is_django_unittest(request.node)):
 
         from django.test import TestCase
 
@@ -245,14 +245,14 @@ def live_server(request):
 def _live_server_helper(request):
     """Helper to make live_server work, internal to pytest-django
 
-    This helper will dynamically request the transactional_db fixture
+    This helper will dynamically request the django_db_transactional fixture
     for a tests which uses the live_server fixture.  This allows the
     server and test to access the database without having to mark
     this explicitly which is handy since it is usually required and
     matches the Django behaviour.
 
     The separate helper is required since live_server can not request
-    transactional_db directly since it is session scoped instead of
+    django_db_transactional directly since it is session scoped instead of
     function-scoped.
     """
     if 'live_server' in request.funcargnames:

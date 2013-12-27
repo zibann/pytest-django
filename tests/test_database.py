@@ -46,7 +46,7 @@ def test_noaccess_fixture(noaccess):
 
 
 class TestDatabaseFixtures:
-    """Tests for the db and transactional_db fixtures"""
+    """Tests for the django_db and django_db_transactional fixtures"""
 
     @pytest.fixture(params=['django_db', 'django_db_transactional'])
     def both_dbs(self, request):

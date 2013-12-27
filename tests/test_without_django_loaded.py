@@ -39,7 +39,7 @@ def test_database(testdir):
         def test_db(django_db):
             assert 0
 
-        def test_transactional_db(django_db_transactional):
+        def test_django_db_transactional(django_db_transactional):
             assert 0
     """)
     r = testdir.runpytest()

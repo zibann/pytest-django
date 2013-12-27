@@ -46,7 +46,7 @@ on what marks are and for notes on using_ them.
       this marker will not help even if the function requesting your
       fixture has this marker applied.  To access the database in a
       fixture, the fixture itself will have to request the ``db`` or
-      ``transactional_db`` fixture.  See below for a description of
+      ``django_db_transactional`` fixture.  See below for a description of
       them.
 
 
@@ -139,7 +139,7 @@ required for fixtures which want to use the database themselves.  A
 test function should normally use the :py:func:`~pytest.mark.django_db`
 mark to signal it needs the database.
 
-``transactional_db``
+``django_db_transactional``
 ~~~~~~~~~~~~~~~~~~~~
 
 This fixture can be used to request access to the database including

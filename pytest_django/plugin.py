@@ -148,7 +148,7 @@ def django_cursor_wrapper(request):
 def _django_db_marker(request):
     """Implement the django_db marker, internal to pytest-django
 
-    This will dynamically request the ``db`` or ``transactional_db``
+    This will dynamically request the ``db`` or ``django_db_transactional``
     fixtures as required by the django_db marker.
     """
     marker = request.node.get_marker('django_db')
