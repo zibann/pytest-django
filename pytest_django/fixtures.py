@@ -57,7 +57,7 @@ def django_db_setup(request,
     from .compat import setup_databases, teardown_databases
     from django.conf import settings
 
-    # Run souths syncdb command if south is installed. Teh call to
+    # Run souths syncdb command if south is installed. The call to
     # patch_for_test_db_setup ensures that migrations are run
     if 'south' in settings.INSTALLED_APPS:
         from south.management.commands import patch_for_test_db_setup
