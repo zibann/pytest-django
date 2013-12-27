@@ -54,14 +54,7 @@ def django_db_setup(request,
     """Session-wide database setup, internal to pytest-django"""
     skip_if_no_django()
 
-    from django.core import management
-
     from .compat import setup_databases, teardown_databases
-
-    # Disable south's syncdb command
-    commands = management.get_commands()
-    if commands['syncdb'] == 'south':
-        management._commands['syncdb'] = 'django.core'
 
     # Replace Django's database test creation creation code to support database reuse
     if django_db_reuse.can_reuse_database():
