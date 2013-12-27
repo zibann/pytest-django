@@ -11,9 +11,26 @@ except ImportError:
 
 
 # OperationalError was introduced in Django 1.6
-# Use the less generic DatabaseError for older Django versions
-try:
-    from django.db.utils import OperationalError
-except ImportError:
-    from django.db.utils import DatabaseError as OperationalError
-    OperationalError  # silence pyflakes
+# Guess OperationalErrors for other databases for older versions of Django
+def _get_operational_errors():
+    try:
+        from django.db.utils import OperationalError
+        return OperationalError
+    except ImportError:
+        errors = []
+
+    try:
+        import MySQLdb
+        errors.append(MySQLdb.OperationalError)
+    except ImportError:
+        pass
+
+    try:
+        import psycopg2
+        errors.append(psycopg2.OperationalError)
+    except ImportError:
+        pass
+
+    return tuple(errors)
+
+OPERATIONAL_ERRORS = _get_operational_errors()

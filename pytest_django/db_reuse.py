@@ -50,7 +50,7 @@ class DjangoTestDatabaseReuse(object):
                     monkeypatch_method(connection.creation, 'create_test_db', create_test_db_with_reuse)
 
 def _test_database_exists_from_previous_run(connection):
-    from .compat import OperationalError
+    from .compat import OPERATIONAL_ERRORS
 
     # Check for sqlite memory databases
     if is_in_memory_db(connection):
@@ -65,7 +65,7 @@ def _test_database_exists_from_previous_run(connection):
     try:
         connection.cursor()
         return True
-    except OperationalError:
+    except OPERATIONAL_ERRORS:
         return False
     finally:
         connection.close()
