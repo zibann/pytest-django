@@ -117,6 +117,10 @@ def django_test_environment(request):
     if django_settings_is_configured():
         from django.test.utils import setup_test_environment, teardown_test_environment
         from django.conf import settings
+        import django
+        # Django >= 1.7: Call django.setup() to initialize Django
+        setup = getattr(django, 'setup', lambda: None)
+        setup()
 
         setup_test_environment()
         settings.DEBUG = False
@@ -134,9 +138,15 @@ def django_cursor_wrapper(request):
     """
     if django_settings_is_configured():
 
-        import django.db.backends.util
+        # util -> utils rename in Django 1.7
+        try:
+            import django.db.backends.utils
+            utils_module = django.db.backends.utils
+        except ImportError:
+            import django.db.backends.util
+            utils_module = django.db.backends.util
 
-        manager = CursorManager(django.db.backends.util)
+        manager = CursorManager(utils_module)
         manager.disable()
         request.addfinalizer(manager.restore)
     else:
