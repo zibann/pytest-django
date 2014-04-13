@@ -13,12 +13,10 @@ from .test_db_config import TestDBConfig
 from .django_compat import is_django_unittest
 from .lazy_django import skip_if_no_django
 
+
 __all__ = ['django_db_setup', 'django_db', 'django_db_transactional',
            'client', 'admin_client', 'rf', 'settings', 'live_server',
            '_live_server_helper']
-
-
-################ Internal Fixtures ################
 
 
 @pytest.fixture(scope='session')
@@ -41,7 +39,7 @@ def django_test_db_config(request, django_test_environment):
 
 @pytest.fixture(scope='session')
 def django_db_reuse(request, django_cursor_wrapper):
-    """An instance of DjangoTestDatabaseReuse"""
+    """An instance of DjangoTestDatabaseReuse."""
     return DjangoTestDatabaseReuse(request.config, django_cursor_wrapper)
 
 
@@ -76,9 +74,6 @@ def django_db_setup(request,
                 teardown_databases(db_cfg)
 
         request.addfinalizer(fin)
-
-
-################ User visible fixtures ################
 
 
 @pytest.fixture(scope='function')
