@@ -143,38 +143,31 @@ def django_db_transactional(request, django_db_setup, django_cursor_wrapper):
 def client():
     """A Django test client instance"""
     skip_if_no_django()
-
     from django.test.client import Client
-
     return Client()
 
 
 @pytest.fixture()
-def admin_client(request, django_cursor_wrapper):
-    request.getfuncargvalue('django_db_setup')
+def admin_client(client, django_db):
+    skip_if_no_django()
 
-    with django_cursor_wrapper:
-        """A Django test client logged in as an admin user"""
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+    except ImportError:
+        from django.contrib.auth.models import User
 
-        try:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-        except ImportError:
-            from django.contrib.auth.models import User
-        from django.test.client import Client
+    try:
+        User.objects.get(username='admin')
+    except User.DoesNotExist:
+        user = User.objects.create_user('admin', 'admin@example.com', 'password')
+        user.is_staff = True
+        user.is_superuser = True
+        user.save()
 
-        try:
-            User.objects.get(username='admin')
-        except User.DoesNotExist:
-            user = User.objects.create_user('admin', 'admin@example.com',
-                                            'password')
-            user.is_staff = True
-            user.is_superuser = True
-            user.save()
+    client.login(username='admin', password='password')
 
-        client = Client()
-        client.login(username='admin', password='password')
-        return client
+    return client
 
 
 @pytest.fixture()
