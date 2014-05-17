@@ -90,17 +90,21 @@ def django_db(request, django_db_setup, django_cursor_wrapper):
     database setup will behave as only ``transaction_db`` was
     requested.
     """
-    if ('django_db_transactional' not in request.funcargnames and
-        'live_server' not in request.funcargnames and
-        not is_django_unittest(request.node)):
+
+    is_django_testcase = ('django_db_transactional' not in request.funcargnames and
+                          'live_server' not in request.funcargnames and
+                          not is_django_unittest(request.node))
+
+    if is_django_testcase:
 
         from django.test import TestCase
 
         django_cursor_wrapper.enable()
+
         case = TestCase(methodName='__init__')
         case._pre_setup()
-        request.addfinalizer(case._post_teardown)
         request.addfinalizer(django_cursor_wrapper.restore)
+        request.addfinalizer(case._post_teardown)
 
 
 @pytest.fixture(scope='function')

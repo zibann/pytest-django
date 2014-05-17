@@ -53,6 +53,7 @@ def pytest_addoption(parser):
     parser.addini(SETTINGS_MODULE_ENV,
                   'Django settings module to use by pytest-django.')
 
+
 def _load_settings(config, options):
     # Configure DJANGO_SETTINGS_MODULE
     ds = (options.ds or
@@ -106,9 +107,6 @@ def pytest_configure(config):
         _load_settings(config, config.option)
 
 
-################ Autouse fixtures ################
-
-
 @pytest.fixture(autouse=True, scope='session')
 def django_test_environment(request):
     """
@@ -117,10 +115,9 @@ def django_test_environment(request):
     if django_settings_is_configured():
         from django.test.utils import setup_test_environment, teardown_test_environment
         from django.conf import settings
-        import django
-        # Django >= 1.7: Call django.setup() to initialize Django
-        setup = getattr(django, 'setup', lambda: None)
-        setup()
+        from .compat import setup
+
+        setup()  # This is django.setup()
 
         setup_test_environment()
         settings.DEBUG = False
