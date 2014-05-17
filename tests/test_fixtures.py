@@ -76,7 +76,7 @@ class TestLiveServer:
     pytestmark = [
         pytest.mark.skipif('django.VERSION[:2] < (1, 4)'),
         pytest.mark.urls('tests.urls_liveserver'),
-        ]
+    ]
 
     def test_url(self, live_server):
         assert live_server.url == force_text(live_server)
@@ -112,7 +112,6 @@ class TestLiveServer:
         with pytest.raises(pytest.fail.Exception):
             Item.objects.create(name='foo')
 
-    @pytest.mark.xfail
     def test_item(self, item, live_server):
         # test should fail/pass in setup
         pass

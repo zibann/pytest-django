@@ -1,6 +1,7 @@
 import sys
 import types
 
+
 def monkeypatch_method(obj, method_name, new_method):
     assert hasattr(obj, method_name)
 
