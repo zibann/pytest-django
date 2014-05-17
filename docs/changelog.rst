@@ -1,6 +1,53 @@
 Changelog
 =========
 
+3.0.0
+-----
+
+This is a major new release with some backward incompatibilites. The goal of
+this release is to make better use of pytest's fixtures when setting up the
+database.
+
+Since the 2.0 release, when fixtures was new in pytest itself, we have learned
+new ways of using them in a more effective way.
+
+It is now possible to customize each part of the database setup process very
+easy. See the documentation on `example configurations` for some examples of
+the new possibilites.
+
+* *BACKWARD INCOMPATIBLE*: The `db` fixture has been renamed to `django_db` and
+  `transactional_db` has been renamed to `django_db_transactional`.  You need
+  to replace all uses of `db` or `transactional_db` with the new names, or add
+  fixtures like this to your projects conftest.py file::
+
+    import pytest
+
+    @pytest.fixture
+    def db(django_db):
+        pass
+
+    @pytest.fixture
+    def transactional_db(django_db_transactional):
+        pass
+
+
+* Improved database setup fixtures: The fixtures that handles setting up
+  the Django test databases has been reorganized to open up more possibilites
+  to customize the process. See the `documentation for the database fixtures`
+  and the `configuration examples` for more information.
+
+* Internal cleanup of large parts of the plugin: The internal code is now
+  better structured, more robust and easier to understand.
+
+* (XXX: planned, in progress): Improved getting started documentation: The
+  documentation has been reorganized, has got two new tutorials: `Tutorial:
+  Converting an existing project` and `Tutorial: Starting a new project with
+  pytest-django`.
+
+* (XXX: planned, not yet implemented) Deprecate pytest.mark.urls similar to
+  TestCase.urls
+
+
 2.6.2
 -----
 
