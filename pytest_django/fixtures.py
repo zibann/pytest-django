@@ -31,7 +31,8 @@ def django_test_db_config(request, django_test_environment):
     else:
         suffix = None
 
-    test_db_config = TestDBConfig(suffix)
+    from django.db import connections
+    test_db_config = TestDBConfig(connections, suffix)
     test_db_config.set_test_names()
 
     return test_db_config
@@ -49,7 +50,6 @@ def django_db_setup(request,
                     django_test_environment,
                     django_cursor_wrapper,
                     django_db_reuse):
-    """Session-wide database setup, internal to pytest-django"""
     skip_if_no_django()
 
     from .compat import setup_databases, teardown_databases
@@ -61,19 +61,19 @@ def django_db_setup(request,
         from south.management.commands import patch_for_test_db_setup
         patch_for_test_db_setup()
 
-    # Replace Django's database test creation creation code to support database reuse
+    # Patch Django's database test creation creation code to support database reuse
     if django_db_reuse.can_reuse_database():
         django_db_reuse.monkeypatch_django_creation()
 
     with django_cursor_wrapper:
-        db_cfg = setup_databases()
+        db_cfg = setup_databases(1, interactive=False)
 
     if django_db_reuse.should_drop_database():
-        def fin():
+        def finalizer():
             with django_cursor_wrapper:
                 teardown_databases(db_cfg)
 
-        request.addfinalizer(fin)
+        request.addfinalizer(finalizer)
 
 
 @pytest.fixture(scope='function')

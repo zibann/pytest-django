@@ -66,13 +66,13 @@ class TestDatabaseFixtures:
         # Relies on the order: test_access created an object
         assert Item.objects.count() == 0
 
-    def test_transactions_disabled(self, db):
+    def test_transactions_disabled(self, django_db):
         if not connections_support_transactions():
             pytest.skip('transactions required for this test')
 
         assert noop_transactions()
 
-    def test_transactions_enabled(self, transactional_db):
+    def test_transactions_enabled(self, django_db_transactional):
         if not connections_support_transactions():
             pytest.skip('transactions required for this test')
 

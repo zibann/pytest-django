@@ -89,7 +89,7 @@ def test_xdist_with_reuse(django_testdir):
             _check(settings)
     ''')
 
-    result = django_testdir.runpytest('-vv', '-n2', '-s', '--reuse-db')
+    result = django_testdir.runpytest('-vv', '-n2', '-s', '--reuse-db', '--tb=short')
     result.stdout.fnmatch_lines(['*PASSED*test_a*'])
     result.stdout.fnmatch_lines(['*PASSED*test_b*'])
 
