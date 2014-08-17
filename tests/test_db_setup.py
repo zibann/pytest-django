@@ -2,8 +2,8 @@ import sys
 
 import pytest
 
-from .db_helpers import (db_exists, drop_database, mark_database, mark_exists,
-                         skip_if_sqlite_in_memory)
+from pytest_django_test.db_helpers import (db_exists, drop_database, mark_database,
+                                           mark_exists, skip_if_sqlite_in_memory)
 
 from pytest_django.lazy_django import get_django_version
 
