@@ -28,3 +28,13 @@ except ImportError:
 
 
 del _runner
+
+try:
+    from django.test.signals import setting_changed
+except ImportError:
+    # Django 1.3 does not have the setting_changed signal. Fake that we have it
+    # available by defining it ourselves. No listeners will be connected to
+    # this instance, so it will not be usable, it just exists here to make
+    # compatibilty easier
+    from django.dispatch import Signal
+    setting_changed = Signal(providing_args=['setting', 'value'])

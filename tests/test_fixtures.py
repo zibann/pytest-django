@@ -10,6 +10,7 @@ import pytest
 from django.conf import settings as real_settings
 from django.test.client import Client, RequestFactory
 from django.test.testcases import connections_support_transactions
+from django.test import signals
 
 from pytest_django.lazy_django import get_django_version
 from pytest_django_test.app.models import Item
@@ -82,6 +83,56 @@ class TestSettings:
     def test_deleted_again(self, settings):
         assert hasattr(settings, 'SECRET_KEY')
         assert hasattr(real_settings, 'SECRET_KEY')
+
+
+@pytest.mark.skipif(not hasattr(signals, 'setting_changed'),
+                    reason='django.test.signals.setting_changed was introduced in Django 1.4')
+class TestSettingsSignals:
+
+    def test_modification(self, django_testdir):
+        django_testdir.create_test_module("""
+            import pytest
+
+            from django.conf import settings
+            from django.test.signals import setting_changed
+
+            @pytest.fixture(autouse=True, scope='session')
+            def settings_change_printer():
+                def receiver(sender, **kwargs):
+                    fmt_dict = {'actual_value': getattr(settings, kwargs['setting'],
+                                                      '<<does not exist>>')}
+                    fmt_dict.update(kwargs)
+
+                    print ('Setting changed: '
+                           'enter=%(enter)s,setting=%(setting)s,'
+                           'value=%(value)s,actual_value=%(actual_value)s'
+                           % fmt_dict)
+
+                setting_changed.connect(receiver, weak=False)
+
+            def test_set(settings):
+                settings.SECRET_KEY = 'change 1'
+                settings.SECRET_KEY = 'change 2'
+
+            def test_set_non_existent(settings):
+                settings.FOOBAR = 'abc123'
+        """)
+
+        result = django_testdir.runpytest('--tb=short', '-v', '-s')
+
+        # test_set
+        result.stdout.fnmatch_lines([
+            '*Setting changed: enter=True,setting=SECRET_KEY,value=change 1*',
+            '*Setting changed: enter=True,setting=SECRET_KEY,value=change 2*',
+            '*Setting changed: enter=False,setting=SECRET_KEY,value=change 1*',
+            '*Setting changed: enter=False,setting=SECRET_KEY,value=foobar*',
+        ])
+
+        result.stdout.fnmatch_lines([
+            '*Setting changed: enter=True,setting=FOOBAR,value=abc123*',
+            ('*Setting changed: enter=False,setting=FOOBAR,value=None,'
+             'actual_value=<<does not exist>>*'),
+        ])
 
 
 class TestLiveServer:
