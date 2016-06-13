@@ -3,19 +3,20 @@
 
 import pytest
 
+from django.conf import settings
+from django.test.utils import get_runner
+
 try:
     from django.test.runner import DiscoverRunner as DjangoTestRunner
 except ImportError:
     from django.test.simple import DjangoTestSuiteRunner as DjangoTestRunner
 
+DjangoTestRunner = get_runner(settings)
 _runner = DjangoTestRunner(verbosity=pytest.config.option.verbose,
                            interactive=False)
 
 
-try:
-    from django.test.runner import setup_databases
-except ImportError:
-    setup_databases = _runner.setup_databases
+setup_databases = _runner.setup_databases
 
 teardown_databases = _runner.teardown_databases
 

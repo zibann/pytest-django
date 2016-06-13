@@ -106,7 +106,7 @@ def _django_db_fixture_helper(transactional, request, _django_cursor_wrapper):
     if django_case:
         case = django_case(methodName='__init__')
         case._pre_setup()
-        request.addfinalizer(case._post_teardown)
+        # request.addfinalizer(case._post_teardown)
 
 
 def _handle_south():
